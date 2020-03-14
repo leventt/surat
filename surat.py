@@ -15,7 +15,7 @@ ROOT_PATH = os.getenv('SURAT_ROOT_PATH', False)
 if not ROOT_PATH:
     ROOT_PATH = os.path.expanduser(os.path.join('~', 'sandbox', 'surat'))
 DEVICE = torch.device('cuda')
-SHAPES_COUNT = 51
+OUTPUT_COUNT = 8320 * 3  # 8320 vertex positions in 3 dimentions
 
 
 class Data(Dataset):
@@ -25,12 +25,12 @@ class Data(Dataset):
         self.shiftRandom = shiftRandom and not self.preview
         self.count = None
 
-        animFPS = 24
+        animFPS = 29.97  # samSoar recorded with an ipad
 
         if self.preview:
             inputSpeechPath = validationAudioPath
         else:
-            inputSpeechPath = os.path.join(ROOT_PATH, 'data', 'inputSpeech.wav')
+            inputSpeechPath = os.path.join(ROOT_PATH, 'data', 'samSoar', 'samSoar.wav')
         waveform, sampleRate = torchaudio.load(inputSpeechPath)
         if sampleRate != 16000:
             waveform = torchaudio.transforms.Resample(sampleRate, 16000)(waveform)
@@ -53,21 +53,6 @@ class Data(Dataset):
 
         if self.shiftRandom:
             self.halfShift = int(sampleRate / 1000) * 8  # 8ms shift left or right
-
-        if validationAudioPath is not None:
-            self.targetValues = np.zeros((self.count, SHAPES_COUNT))
-        else:
-            self.targetValues = np.load(
-                os.path.join(ROOT_PATH, 'data', 'shapeValuesPerFrame.npy')
-            )
-            self.count = self.targetValues.shape[0]
-
-        self.targetValues = (
-            torch.from_numpy(self.targetValues.reshape(-1, SHAPES_COUNT))
-            .float()
-            .view(-1, SHAPES_COUNT)
-            .to(DEVICE)
-        )
 
     def __getitem__(self, i):
         if i < 0:  # for negative indexing
@@ -140,15 +125,30 @@ class Data(Dataset):
             return (
                 torch.Tensor([i]).long().to(DEVICE),
                 inputValue[0],
-                (self.targetValues[i] - .5) * 2.
+                torch.zeros((1, OUTPUT_COUNT))
             )
 
-        targetValue = self.targetValues[i : i + 2]
+        targetValue = torch.from_numpy(np.append(
+            np.load(
+                os.path.join(
+                    ROOT_PATH,
+                    'data', 'samSoar', 'maskSeq',
+                    'mask.{:05d}.npy'.format(i + 1)
+                )
+            ),
+            np.load(
+                os.path.join(
+                    ROOT_PATH,
+                    'data', 'samSoar', 'maskSeq',
+                    'mask.{:05d}.npy'.format(i + 2)
+                )
+            )
+        )).float().view(-1, OUTPUT_COUNT).to(DEVICE)
 
         return (
             torch.Tensor([i]).long().to(DEVICE),
             inputValue,
-            (targetValue - .5) * 2.
+            (targetValue) * .5  # output values are assumed to have max of 2 and min of -2
         )
 
     def __len__(self):
@@ -221,11 +221,11 @@ class Model(nn.Module):
         )
         self.output = nn.Sequential(
             nn.Linear(256 + self.moodLen, 128),
-            nn.Linear(128, SHAPES_COUNT),
+            nn.Linear(128, OUTPUT_COUNT),
             nn.Tanh(),
         )
 
-    def forward(self, inp, moodIndex=0, mood=None):
+    def forward(self, inp, mood, moodIndex=0):
         out = self.formantAnalysis(inp)
         if mood is not None:
             out = torch.cat(
@@ -252,7 +252,7 @@ class Model(nn.Module):
             ).view(-1, 256 + self.moodLen, 64, 1)
         out = self.articulation(out)
         out = self.output(out.view(-1, 256 + self.moodLen))
-        return out.view(-1, SHAPES_COUNT)
+        return out.view(-1, OUTPUT_COUNT)
 
 
 def train():
@@ -281,12 +281,12 @@ def train():
         for i, inputData, target in dataLoader:
             # compensate for paired input
             inputData = inputData.view(-1, 1, 64, 32)
-            target = target.view(-1, SHAPES_COUNT)
-            targetPairView = target.view(-1, 2, SHAPES_COUNT)
+            target = target.view(-1, OUTPUT_COUNT)
+            targetPairView = target.view(-1, 2, OUTPUT_COUNT)
 
             modelOptimizer.zero_grad()
-            modelResult = model(inputData, i)
-            modelResultPairView = modelResult.view(-1, 2, SHAPES_COUNT)
+            modelResult = model(inputData, None, i)
+            modelResultPairView = modelResult.view(-1, 2, OUTPUT_COUNT)
 
             shapeLoss = criterion(
                 modelResultPairView,
@@ -327,4 +327,3 @@ if __name__ == '__main__':
     train()
     print('done')
     print('duration: {}'.format(datetime.now() - start))
-
