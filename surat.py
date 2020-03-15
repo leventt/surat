@@ -256,7 +256,7 @@ class Model(nn.Module):
 
 
 def train():
-    batchSize = 16
+    batchSize = 256
     dataSet = Data()
     dataLoader = DataLoader(
         dataset=dataSet,
