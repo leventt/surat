@@ -49,7 +49,7 @@ class Data(Dataset):
             frame_shift=16,
         )
         self.MFCCLen = self.MFCC.size()[0]
-        self.MFCC.to(DEVICE)
+        self.MFCC
 
         if self.shiftRandom:
             self.halfShift = int(sampleRate / 1000) * 8  # 8ms shift left or right
@@ -105,7 +105,7 @@ class Data(Dataset):
                 )
                 .view(2, 1, 64, 32)
                 .float()
-                .to(DEVICE)
+
             )
         else:
             inputValue = (
@@ -118,12 +118,12 @@ class Data(Dataset):
                 )
                 .view(2, 1, 64, 32)
                 .float()
-                .to(DEVICE)
+
             )
 
         if self.preview:
             return (
-                torch.Tensor([i]).long().to(DEVICE),
+                torch.Tensor([i]).long(),
                 inputValue[0],
                 torch.zeros((1, OUTPUT_COUNT))
             )
@@ -143,10 +143,10 @@ class Data(Dataset):
                     'mask.{:05d}.npy'.format(i + 2)
                 )
             )
-        )).float().view(-1, OUTPUT_COUNT).to(DEVICE)
+        )).float().view(-1, OUTPUT_COUNT)
 
         return (
-            torch.Tensor([i]).long().to(DEVICE),
+            torch.Tensor([i]).long(),
             inputValue,
             (targetValue) * .5  # output values are assumed to have max of 2 and min of -2
         )
@@ -261,7 +261,8 @@ def train():
     dataLoader = DataLoader(
         dataset=dataSet,
         batch_size=batchSize,
-        shuffle=True
+        shuffle=True,
+        num_workers=64
     )
 
     model = Model(dataSet.count).to(DEVICE)
@@ -282,6 +283,9 @@ def train():
     MSENoReductionCriterion = torch.nn.MSELoss(reduction='none').to(DEVICE)
     for epochIdx in range(epochCount):
         for i, inputData, target in dataLoader:
+            i = i.to(DEVICE)
+            inputData = inputData.to(DEVICE)
+            target = target.to(DEVICE)
             # compensate for paired input
             inputData = inputData.view(-1, 1, 64, 32)
             target = target.view(-1, OUTPUT_COUNT)
