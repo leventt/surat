@@ -58,8 +58,8 @@ class Data(Dataset):
             randomShift = random.randint(0, 1)  # frame length 64 is about 8 ms
         else:
             randomShift = 0
-        audioIdxRoll = int(i * (self.count / self.MFCCLen + randomShift))
-        audioIdxRollPair = int((i + 1) * (self.count / self.MFCCLen + randomShift))
+        audioIdxRoll = int(i * (self.MFCCLen / self.count) + randomShift)
+        audioIdxRollPair = int((i + 1) * (self.MFCCLen / self.count) + randomShift)
         if audioIdxRoll < 32 or audioIdxRollPair < 32 or audioIdxRoll + 32 > self.MFCCLen or audioIdxRollPair + 32 > self.MFCCLen:
             inputValue = (
                 torch.cat(
