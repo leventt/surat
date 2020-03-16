@@ -262,7 +262,7 @@ def train():
         dataset=dataSet,
         batch_size=batchSize,
         shuffle=True,
-        num_workers=64
+        num_workers=8
     )
 
     model = Model(dataSet.count).to(DEVICE)
