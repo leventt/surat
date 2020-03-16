@@ -45,8 +45,8 @@ class Data(Dataset):
             window_type='hanning',
             num_ceps=32,
             num_mel_bins=64,
-            frame_length=16,
-            frame_shift=16,
+            frame_length=64,
+            frame_shift=32
         )
         self.MFCCLen = self.MFCC.size()[0]
         self.MFCC
