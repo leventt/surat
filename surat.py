@@ -250,7 +250,7 @@ class Model(nn.Module):
 
 
 def train():
-    batchSize = 256
+    batchSize = 1024
     dataSet = Data()
     dataLoader = DataLoader(
         dataset=dataSet,
@@ -262,10 +262,10 @@ def train():
     model = Model(dataSet.count).to(DEVICE)
     modelOptimizer = torch.optim.Adam(
         model.parameters(),
-        lr=1e-3
+        lr=1e-6
     )
 
-    epochCount = 5000
+    epochCount = 50000
 
     runStr = datetime.now().strftime('%y_%m_%d_%H_%M_%S')
     logWriter = SummaryWriter(os.path.join(ROOT_PATH, 'logs', runStr))
@@ -309,7 +309,7 @@ def train():
                 MSENoReductionCriterion(
                     model.mood[i],
                     model.mood[i + 1]
-                ) / model.moodLen,
+                ),
                 dim=-1
             ))
 
