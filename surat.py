@@ -45,27 +45,21 @@ class Data(Dataset):
             window_type='hanning',
             num_ceps=32,
             num_mel_bins=64,
-            frame_length=64,
-            frame_shift=32
+            frame_length=16,
+            frame_shift=8
         )
         self.MFCCLen = self.MFCC.size()[0]
-        self.MFCC
-
-        if self.shiftRandom:
-            self.halfShift = int(sampleRate / 1000) * 8  # 8ms shift left or right
 
     def __getitem__(self, i):
         if i < 0:  # for negative indexing
             i = self.count + i
 
         if self.shiftRandom:
-            randomShift = random.randint(-1 * self.halfShift, self.halfShift)
-            randomShiftPair = random.randint(-1 * self.halfShift, self.halfShift)
+            randomShift = random.randint(0, 1)  # frame length 64 is about 8 ms
         else:
             randomShift = 0
-            randomShiftPair = 0
-        audioIdxRoll = int((i / self.count) * self.MFCCLen + randomShift)
-        audioIdxRollPair = int(((i + 1) / self.count) * self.MFCCLen + randomShiftPair)
+        audioIdxRoll = int(i * (self.MFCCLen / self.count) + randomShift)
+        audioIdxRollPair = int((i + 1) * (self.MFCCLen / self.count) + randomShift)
         if audioIdxRoll < 32 or audioIdxRollPair < 32 or audioIdxRoll + 32 > self.MFCCLen or audioIdxRollPair + 32 > self.MFCCLen:
             inputValue = (
                 torch.cat(
