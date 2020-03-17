@@ -299,7 +299,7 @@ def train():
                 MSENoReductionCriterion(
                     modelResultPairView[:, 0, :],
                     targetPairView[:, 0, :]
-                ) / OUTPUT_COUNT,
+                ),
                 dim=-1
             ))
 
@@ -307,7 +307,7 @@ def train():
                 MSENoReductionCriterion(
                     modelResultPairView[:, 1, :] - modelResultPairView[:, 0, :],
                     targetPairView[:, 1, :] - targetPairView[:, 0, :],
-                ) / OUTPUT_COUNT,
+                ),
                 dim=-1
             ))
 
