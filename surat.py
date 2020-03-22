@@ -38,15 +38,19 @@ class Data(Dataset):
 
         self.count = int(animFPS * (waveform.size()[1] / sampleRate))
 
-        self.MFCC = torchaudio.compliance.kaldi.mfcc(
+        # remove DC component
+        waveform -= torch.mean(waveform)
+
+
+        MFCC = torchaudio.compliance.kaldi.mfcc(
             waveform,
             channel=0,
             remove_dc_offset=True,
             window_type='hanning',
             num_ceps=32,
             num_mel_bins=64,
-            frame_length=16,
-            frame_shift=8
+            frame_length=256,
+            frame_shift=32
         )
         self.MFCCLen = self.MFCC.size()[0]
 
