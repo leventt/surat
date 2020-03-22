@@ -41,7 +41,7 @@ class Data(Dataset):
         # remove DC component
         waveform -= torch.mean(waveform)
 
-        MFCC = torchaudio.compliance.kaldi.mfcc(
+        self.MFCC = torchaudio.compliance.kaldi.mfcc(
             waveform,
             channel=0,
             remove_dc_offset=True,
