@@ -159,19 +159,14 @@ class Model(nn.Module):
 
         self.formantAnalysis = nn.Sequential(
             nn.Conv2d(1, 72, (1, 3), (1, 2), (0, 1), 1),
-            nn.BatchNorm2d(72),
             nn.LeakyReLU(),
             nn.Conv2d(72, 108, (1, 3), (1, 2), (0, 1), 1),
-            nn.BatchNorm2d(108),
             nn.LeakyReLU(),
             nn.Conv2d(108, 162, (1, 3), (1, 2), (0, 1), 1),
-            nn.BatchNorm2d(162),
             nn.LeakyReLU(),
             nn.Conv2d(162, 243, (1, 3), (1, 2), (0, 1), 1),
-            nn.BatchNorm2d(243),
             nn.LeakyReLU(),
             nn.Conv2d(243, 256, (1, 2), (1, 2)),
-            nn.BatchNorm2d(256),
             nn.LeakyReLU(),
         )
 
@@ -188,33 +183,23 @@ class Model(nn.Module):
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen, 0.8),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen, 0.8),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen, 0.8),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen, 0.8),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (4, 1), (4, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen, 0.8),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
         )
         self.output = nn.Sequential(
             nn.Linear(256 + self.moodLen, 128),
