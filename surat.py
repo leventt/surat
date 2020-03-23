@@ -262,10 +262,10 @@ def train():
         num_workers=8
     )
 
-    model = Model(dataSet.count).to(DEVICE)
+    model = Model(dataSet.count, filterMood=True).to(DEVICE)
     modelOptimizer = torch.optim.Adam(
         model.parameters(),
-        lr=1e-3
+        lr=1e-4
     )
 
     epochCount = 50000
