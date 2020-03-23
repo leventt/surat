@@ -183,27 +183,39 @@ class Model(nn.Module):
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
+            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
+            nn.Dropout2d(0.1),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
+            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
+            nn.Dropout2d(0.1),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
+            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
+            nn.Dropout2d(0.1),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
+            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
+            nn.Dropout2d(0.1),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (4, 1), (4, 1), (1, 0), 1
             ),
+            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
+            nn.Dropout2d(0.1),
         )
         self.output = nn.Sequential(
             nn.Linear(256 + self.moodLen, 128),
-            nn.Linear(128, OUTPUT_COUNT),
+            nn.Linear(128, 256),
+            nn.Linear(256, 512),
+            nn.Linear(512, OUTPUT_COUNT),
             nn.Tanh(),
         )
 
