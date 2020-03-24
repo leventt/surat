@@ -298,8 +298,8 @@ def train():
             )
 
             motionLoss = criterion(
-                modelResultPairView[:, 1, :] - modelResultPairView[:, 0, :],
-                targetPairView[:, 1, :] - targetPairView[:, 0, :],
+                100 * modelResultPairView[:, 1, :] - 100 * modelResultPairView[:, 0, :],
+                100 * targetPairView[:, 1, :] - 100 * targetPairView[:, 0, :],
             )
 
             emotionLoss = criterion(
