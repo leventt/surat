@@ -274,7 +274,7 @@ def train():
     if not os.path.exists(modelDir):
         os.makedirs(modelDir)
 
-    MSENoReductionCriterion = torch.nn.MSELoss(reduction='none').to(DEVICE)
+    criterion = torch.nn.MSELoss().to(DEVICE)
     for epochIdx in range(epochCount):
         for i, inputData, target in dataLoader:
             i = i.to(DEVICE)
@@ -289,29 +289,20 @@ def train():
             modelResult = model(inputData, None, i)
             modelResultPairView = modelResult.view(-1, 2, OUTPUT_COUNT)
 
-            shapeLoss = torch.mean(torch.sum(
-                MSENoReductionCriterion(
-                    modelResultPairView[:, 0, :],
-                    targetPairView[:, 0, :]
-                ),
-                dim=-1
-            ))
+            shapeLoss = criterion(
+                modelResultPairView,
+                targetPairView
+            )
 
-            motionLoss = torch.mean(torch.sum(
-                MSENoReductionCriterion(
-                    modelResultPairView[:, 1, :] - modelResultPairView[:, 0, :],
-                    targetPairView[:, 1, :] - targetPairView[:, 0, :],
-                ),
-                dim=-1
-            ))
+            motionLoss = criterion(
+                modelResultPairView[:, 1, :] - modelResultPairView[:, 0, :],
+                targetPairView[:, 1, :] - targetPairView[:, 0, :],
+            )
 
-            emotionLoss = torch.mean(torch.sum(
-                MSENoReductionCriterion(
-                    model.mood[i],
-                    model.mood[i + 1]
-                ),
-                dim=-1
-            ))
+            emotionLoss = criterion(
+                model.mood[i],
+                model.mood[i + 1]
+            )
 
             (shapeLoss + motionLoss + emotionLoss).backward()
             modelOptimizer.step()
