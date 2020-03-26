@@ -87,33 +87,6 @@ class Data(Dataset):
             self.inputValues = self.inputValues.view(-1, 2, 1, 64, 32)
             torch.save(self.inputValues, INPUT_VALUES_PRECALC_PATH)
 
-        print('pre-loading target values...')
-        self.targetValues = torch.Tensor([])
-        for i in range(self.count):
-            print('{}/{}'.format(i + 1, self.count))
-            self.targetValues = torch.cat(
-                (
-                    self.targetValues,
-                    torch.from_numpy(np.append(
-                    np.load(
-                        os.path.join(
-                            ROOT_PATH,
-                            'data', 'samSoar', 'maskSeq',
-                            'mask.{:05d}.npy'.format(i + 1)
-                        )
-                    ),
-                    np.load(
-                        os.path.join(
-                            ROOT_PATH,
-                            'data', 'samSoar', 'maskSeq',
-                            'mask.{:05d}.npy'.format(i + 2)
-                        )
-                    )
-                )).float().view(2, OUTPUT_COUNT)
-                ), dim=0
-            ).view(-1, OUTPUT_COUNT)
-        self.targetValues = self.targetValues.view(-1, 2, OUTPUT_COUNT)
-
     def __getitem__(self, i):
         if i < 0:  # for negative indexing
             i = self.count + i
@@ -126,7 +99,23 @@ class Data(Dataset):
             )
 
         inputValue = self.inputValues[i]
-        targetValue = self.targetValues[i]
+
+        targetValue = torch.from_numpy(np.append(
+            np.load(
+                os.path.join(
+                    ROOT_PATH,
+                    'data', 'samSoar', 'maskSeq',
+                    'mask.{:05d}.npy'.format(i + 1)
+                )
+            ),
+            np.load(
+                os.path.join(
+                    ROOT_PATH,
+                    'data', 'samSoar', 'maskSeq',
+                    'mask.{:05d}.npy'.format(i + 2)
+                )
+            )
+        )).float().view(-1, OUTPUT_COUNT)
 
         return (
             torch.Tensor([i]).long(),
