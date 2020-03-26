@@ -47,6 +47,13 @@ class Data(Dataset):
 
         self.count = int(animFPS * (self.waveform.size()[1] / self.sampleRate))
 
+        self.LPC = lpc.LPCCoefficients(
+            self.sampleRate,
+            .512,
+            .5,
+            order=31  # 32 - 1
+        )
+
     def __getitem__(self, i):
         if i < 0:  # for negative indexing
             i = self.count + i
@@ -64,19 +71,13 @@ class Data(Dataset):
         audioIdxRoll = int(i * audioRoll + randomShift)
         audioIdxRollPair = int((i + 1) * audioRoll + randomShift)
 
-        LPC = lpc.LPCCoefficients(
-            self.sampleRate,
-            .512,
-            .5,
-            order=31  # 32 - 1
-        )
         inputValue = (
             torch.cat(
                 (
-                    LPC(
+                    self.LPC(
                         torch.roll(self.waveform[0:1, :], audioIdxRoll, dims=0)[:, :audioFrameLen]
                     ).view(1, 1, 64, 32),
-                    LPC(
+                    self.LPC(
                         torch.roll(self.waveform[0:1, :], audioIdxRollPair, dims=0)[:, :audioFrameLen]
                     ).view(1, 1, 64, 32)
                 ),
