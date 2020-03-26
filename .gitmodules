@@ -1,0 +1,3 @@
+[submodule "LPCTorch"]
+	path = LPCTorch
+	url = https://github.com/leventt/LPCTorch.git
