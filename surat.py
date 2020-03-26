@@ -17,7 +17,7 @@ if not ROOT_PATH:
     ROOT_PATH = os.path.expanduser(os.path.join('~', 'sandbox', 'surat'))
 DEVICE = torch.device('cuda')
 OUTPUT_COUNT = 8320 * 3  # 8320 vertex positions in 3 dimentions
-
+INPUT_VALUES_PRECALC_PATH = os.path.join(ROOT_PATH, 'inputValues.precalc')
 
 lpc = SourceFileLoader(
     'lpc',
@@ -54,36 +54,69 @@ class Data(Dataset):
             order=31  # 32 - 1
         )
 
+        if os.path.exists(INPUT_VALUES_PRECALC_PATH):
+            self.inputValues = torch.load(INPUT_VALUES_PRECALC_PATH)
+        else:
+            print('pre-calculating input values...')
+            self.inputValues = torch.Tensor([])
+            for i in range(self.count):
+                print('{}/{}'.format(i + 1, self.count))
+                # (.256 * 16000 * (64 + 1)) / 2.
+                audioFrameLen = 266240
+                audioHalfFrameLen = 133120
+                audioRoll = -1 * (int(self.waveform.size()[1] / self.count) - audioHalfFrameLen)
+                audioIdxRoll = int(i * audioRoll)
+                audioIdxRollPair = int((i + 1) * audioRoll)
+
+                self.inputValues = torch.cat(
+                    (
+                        self.inputValues,
+                        torch.cat(
+                            (
+                                self.LPC(
+                                    torch.roll(self.waveform[0:1, :], audioIdxRoll, dims=0)[:, :audioFrameLen]
+                                ).view(1, 1, 64, 32),
+                                self.LPC(
+                                    torch.roll(self.waveform[0:1, :], audioIdxRollPair, dims=0)[:, :audioFrameLen]
+                                ).view(1, 1, 64, 32)
+                            ),
+                            dim=0,
+                        ).view(2, 1, 64, 32)
+                    ), dim=0
+                ).view(-1, 1, 64, 32)
+            self.inputValues = self.inputValues.view(-1, 2, 1, 64, 32)
+            torch.save(self.inputValues, INPUT_VALUES_PRECALC_PATH)
+
+        print('pre-loading target values...')
+        self.targetValues = torch.Tensor([])
+        for i in range(self.count):
+            print('{}/{}'.format(i + 1, self.count))
+            self.targetValues = torch.cat(
+                (
+                    self.targetValues,
+                    torch.from_numpy(np.append(
+                    np.load(
+                        os.path.join(
+                            ROOT_PATH,
+                            'data', 'samSoar', 'maskSeq',
+                            'mask.{:05d}.npy'.format(i + 1)
+                        )
+                    ),
+                    np.load(
+                        os.path.join(
+                            ROOT_PATH,
+                            'data', 'samSoar', 'maskSeq',
+                            'mask.{:05d}.npy'.format(i + 2)
+                        )
+                    )
+                )).float().view(2, OUTPUT_COUNT)
+                ), dim=0
+            ).view(-1, OUTPUT_COUNT)
+        self.targetValues = self.targetValues.view(-1, 2, OUTPUT_COUNT)
+
     def __getitem__(self, i):
         if i < 0:  # for negative indexing
             i = self.count + i
-
-        if self.shiftRandom:
-            # 0.008 * 16000 => 128
-            randomShift = random.randint(0, 128)
-        else:
-            randomShift = 0
-
-        # (.256 * 16000 * (64 + 1)) / 2.
-        audioFrameLen = 266240
-        audioHalfFrameLen = 133120
-        audioRoll = -1 * (int(self.waveform.size()[1] / self.count) - audioHalfFrameLen)
-        audioIdxRoll = int(i * audioRoll + randomShift)
-        audioIdxRollPair = int((i + 1) * audioRoll + randomShift)
-
-        inputValue = (
-            torch.cat(
-                (
-                    self.LPC(
-                        torch.roll(self.waveform[0:1, :], audioIdxRoll, dims=0)[:, :audioFrameLen]
-                    ).view(1, 1, 64, 32),
-                    self.LPC(
-                        torch.roll(self.waveform[0:1, :], audioIdxRollPair, dims=0)[:, :audioFrameLen]
-                    ).view(1, 1, 64, 32)
-                ),
-                dim=0,
-            ).view(2, 1, 64, 32)
-        )
 
         if self.preview:
             return (
@@ -92,22 +125,8 @@ class Data(Dataset):
                 torch.zeros((1, OUTPUT_COUNT))
             )
 
-        targetValue = torch.from_numpy(np.append(
-            np.load(
-                os.path.join(
-                    ROOT_PATH,
-                    'data', 'samSoar', 'maskSeq',
-                    'mask.{:05d}.npy'.format(i + 1)
-                )
-            ),
-            np.load(
-                os.path.join(
-                    ROOT_PATH,
-                    'data', 'samSoar', 'maskSeq',
-                    'mask.{:05d}.npy'.format(i + 2)
-                )
-            )
-        )).float().view(-1, OUTPUT_COUNT)
+        inputValue = self.inputValues[i]
+        targetValue = self.targetValues[i]
 
         return (
             torch.Tensor([i]).long(),
@@ -221,7 +240,7 @@ class Model(nn.Module):
 
 
 def train():
-    batchSize = 1024
+    batchSize = 10
     dataSet = Data()
     dataLoader = DataLoader(
         dataset=dataSet,
@@ -233,7 +252,7 @@ def train():
     model = Model(dataSet.count, filterMood=True).to(DEVICE)
     modelOptimizer = torch.optim.Adam(
         model.parameters(),
-        lr=1e-3
+        lr=1e-5
     )
 
     epochCount = 50000
