@@ -9,6 +9,7 @@ from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 import torchaudio
+from importlib.machinery import SourceFileLoader
 
 
 ROOT_PATH = os.getenv('SURAT_ROOT_PATH', False)
@@ -16,6 +17,14 @@ if not ROOT_PATH:
     ROOT_PATH = os.path.expanduser(os.path.join('~', 'sandbox', 'surat'))
 DEVICE = torch.device('cuda')
 OUTPUT_COUNT = 8320 * 3  # 8320 vertex positions in 3 dimentions
+
+
+lpc = SourceFileLoader(
+    'lpc',
+    os.path.join(
+        ROOT_PATH, 'LPCTorch/lpctorch/lpc.py'
+    )
+).load_module()
 
 
 class Data(Dataset):
@@ -31,24 +40,19 @@ class Data(Dataset):
             inputSpeechPath = validationAudioPath
         else:
             inputSpeechPath = os.path.join(ROOT_PATH, 'data', 'samSoar', 'samSoar.wav')
-        waveform, sampleRate = torchaudio.load(inputSpeechPath)
+        self.waveform, sampleRate = torchaudio.load(inputSpeechPath)
         if sampleRate != 16000:
-            waveform = torchaudio.transforms.Resample(sampleRate, 16000)(waveform)
+            self.waveform = torchaudio.transforms.Resample(sampleRate, 16000)(self.waveform)
             sampleRate = 16000
 
-        self.count = int(animFPS * (waveform.size()[1] / sampleRate))
+        self.count = int(animFPS * (self.waveform.size()[1] / sampleRate))
 
-        self.MFCC = torchaudio.compliance.kaldi.mfcc(
-            waveform,
-            channel=0,
-            remove_dc_offset=True,
-            window_type='hanning',
-            num_ceps=32,
-            num_mel_bins=64,
-            frame_length=256,
-            frame_shift=32
+        self.LPC = lpc.LPCCoefficients(
+            sampleRate,
+            .512,
+            .5,
+            order=31  # 32 - 1
         )
-        self.MFCCLen = self.MFCC.size()[0]
 
     def __getitem__(self, i):
         if i < 0:  # for negative indexing
@@ -60,60 +64,19 @@ class Data(Dataset):
             randomShift = 0
         audioIdxRoll = int(i * (self.MFCCLen / self.count) + randomShift)
         audioIdxRollPair = int((i + 1) * (self.MFCCLen / self.count) + randomShift)
-        if audioIdxRoll < 32 or audioIdxRollPair < 32 or audioIdxRoll + 32 > self.MFCCLen or audioIdxRollPair + 32 > self.MFCCLen:
-            inputValue = (
-                torch.cat(
-                    (
-                        torch.cat(
-                            (
-                                torch.roll(
-                                    self.MFCC,
-                                    (audioIdxRoll * -1) + 32,
-                                    dims=0,
-                                )[:32],
-                                torch.roll(
-                                    self.MFCC,
-                                    (audioIdxRoll * -1),
-                                    dims=0,
-                                )[:32],
-                            ),
-                            dim=0,
-                        ),
-                        torch.cat(
-                            (
-                                torch.roll(
-                                    self.MFCC,
-                                    (audioIdxRollPair * -1) + 32,
-                                    dims=0,
-                                )[:32],
-                                torch.roll(
-                                    self.MFCC,
-                                    (audioIdxRollPair * -1),
-                                    dims=0,
-                                )[:32],
-                            ),
-                            dim=0,
-                        ),
-                    ),
-                    dim=0,
-                )
-                .view(2, 1, 64, 32)
-                .float()
-
+        inputValue = (
+            torch.cat(
+                (
+                    # .256 * 16000 * (64 + 1) => 266240.0
+                    # take left(?) mono
+                    self.LPC(self.waveform[0:1, audioIdxRoll: audioIdxRoll + 266240]),
+                    self.LPC(self.waveform[0:1, audioIdxRollPair: audioIdxRollPair + 266240])
+                ),
+                dim=0,
             )
-        else:
-            inputValue = (
-                torch.cat(
-                    (
-                        self.MFCC[audioIdxRoll - 32: audioIdxRoll + 32],
-                        self.MFCC[audioIdxRollPair - 32: audioIdxRollPair + 32]
-                    ),
-                    dim=0,
-                )
-                .view(2, 1, 64, 32)
-                .float()
-
-            )
+            .view(2, 1, 64, 32)
+            .float()
+        )
 
         if self.preview:
             return (
@@ -142,7 +105,8 @@ class Data(Dataset):
         return (
             torch.Tensor([i]).long(),
             inputValue,
-            (targetValue) * .5  # output values are assumed to have max of 2 and min of -2
+            # output values are assumed to have max of 2 and min of -2
+            (targetValue) * .5
         )
 
     def __len__(self):
