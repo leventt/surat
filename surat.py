@@ -59,8 +59,8 @@ class Data(Dataset):
         else:
             print('pre-calculating input values...')
             self.inputValues = torch.Tensor([])
-            audioFrameLen = .016 * 16000 * (64 + 1)
-            audioHalfFrameLen = audioFrameLen / 2.
+            audioFrameLen = int(.016 * 16000 * (64 + 1))
+            audioHalfFrameLen = int(audioFrameLen / 2.)
             for i in range(self.count):
                 print('{}/{}'.format(i + 1, self.count))
                 audioRoll = -1 * (int(self.waveform.size()[1] / self.count) - audioHalfFrameLen)
