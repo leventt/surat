@@ -59,15 +59,19 @@ class Data(Dataset):
             i = self.count + i
 
         if self.shiftRandom:
-            randomShift = random.randint(0, 1)  # frame length 64 is about 8 ms
+            # 0.008 * 16000 => 128
+            randomShift = random.randint(0, 128)
         else:
             randomShift = 0
-        audioIdxRoll = int(i * (self.MFCCLen / self.count) + randomShift)
-        audioIdxRollPair = int((i + 1) * (self.MFCCLen / self.count) + randomShift)
+
+        # (.256 * 16000 * (64 + 1) => 266240) / 2. => 133120
+        audioRoll = int(self.waveform.size()[1] / self.count) - 133120
+        audioIdxRoll = int(i * audioRoll + randomShift)
+        audioIdxRollPair = int((i + 1) * audioRoll + randomShift)
         inputValue = (
             torch.cat(
                 (
-                    # .256 * 16000 * (64 + 1) => 266240.0
+                    # .256 * 16000 * (64 + 1) => 266240
                     # take left(?) mono
                     self.LPC(self.waveform[0:1, audioIdxRoll: audioIdxRoll + 266240]),
                     self.LPC(self.waveform[0:1, audioIdxRollPair: audioIdxRollPair + 266240])
