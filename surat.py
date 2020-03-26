@@ -38,9 +38,6 @@ class Data(Dataset):
 
         self.count = int(animFPS * (waveform.size()[1] / sampleRate))
 
-        # remove DC component
-        waveform -= torch.mean(waveform)
-
         self.MFCC = torchaudio.compliance.kaldi.mfcc(
             waveform,
             channel=0,
