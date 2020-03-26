@@ -40,19 +40,12 @@ class Data(Dataset):
             inputSpeechPath = validationAudioPath
         else:
             inputSpeechPath = os.path.join(ROOT_PATH, 'data', 'samSoar', 'samSoar.wav')
-        self.waveform, sampleRate = torchaudio.load(inputSpeechPath)
-        if sampleRate != 16000:
-            self.waveform = torchaudio.transforms.Resample(sampleRate, 16000)(self.waveform)
-            sampleRate = 16000
+        self.waveform, self.sampleRate = torchaudio.load(inputSpeechPath)
+        if self.sampleRate != 16000:
+            self.waveform = torchaudio.transforms.Resample(self.sampleRate, 16000)(self.waveform)
+            self.sampleRate = 16000
 
-        self.count = int(animFPS * (self.waveform.size()[1] / sampleRate))
-
-        self.LPC = lpc.LPCCoefficients(
-            sampleRate,
-            .512,
-            .5,
-            order=31  # 32 - 1
-        )
+        self.count = int(animFPS * (self.waveform.size()[1] / self.sampleRate))
 
     def __getitem__(self, i):
         if i < 0:  # for negative indexing
@@ -64,22 +57,31 @@ class Data(Dataset):
         else:
             randomShift = 0
 
-        # (.256 * 16000 * (64 + 1) => 266240) / 2. => 133120
-        audioRoll = int(self.waveform.size()[1] / self.count) - 133120
+        # (.256 * 16000 * (64 + 1)) / 2.
+        audioFrameLen = 266240
+        audioHalfFrameLen = 133120
+        audioRoll = -1 * (int(self.waveform.size()[1] / self.count) - audioHalfFrameLen)
         audioIdxRoll = int(i * audioRoll + randomShift)
         audioIdxRollPair = int((i + 1) * audioRoll + randomShift)
+
+        LPC = lpc.LPCCoefficients(
+            self.sampleRate,
+            .512,
+            .5,
+            order=31  # 32 - 1
+        )
         inputValue = (
             torch.cat(
                 (
-                    # .256 * 16000 * (64 + 1) => 266240
-                    # take left(?) mono
-                    self.LPC(self.waveform[0:1, audioIdxRoll: audioIdxRoll + 266240]),
-                    self.LPC(self.waveform[0:1, audioIdxRollPair: audioIdxRollPair + 266240])
+                    LPC(
+                        torch.roll(self.waveform[0:1, :], audioIdxRoll, dims=0)[:, :audioFrameLen]
+                    ).view(1, 1, 64, 32),
+                    LPC(
+                        torch.roll(self.waveform[0:1, :], audioIdxRollPair, dims=0)[:, :audioFrameLen]
+                    ).view(1, 1, 64, 32)
                 ),
                 dim=0,
-            )
-            .view(2, 1, 64, 32)
-            .float()
+            ).view(2, 1, 64, 32)
         )
 
         if self.preview:
