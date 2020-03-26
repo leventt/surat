@@ -49,7 +49,7 @@ class Data(Dataset):
 
         self.LPC = lpc.LPCCoefficients(
             self.sampleRate,
-            .512,
+            .032,
             .5,
             order=31  # 32 - 1
         )
@@ -59,8 +59,8 @@ class Data(Dataset):
         else:
             print('pre-calculating input values...')
             self.inputValues = torch.Tensor([])
-            audioFrameLen = 266240
-            audioHalfFrameLen = 133120
+            audioFrameLen = .016 * 16000 * (64 + 1)
+            audioHalfFrameLen = audioFrameLen / 2.
             for i in range(self.count):
                 print('{}/{}'.format(i + 1, self.count))
                 audioRoll = -1 * (int(self.waveform.size()[1] / self.count) - audioHalfFrameLen)
