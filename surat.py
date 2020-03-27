@@ -14,7 +14,7 @@ from importlib.machinery import SourceFileLoader
 
 ROOT_PATH = os.getenv('SURAT_ROOT_PATH', False)
 if not ROOT_PATH:
-    ROOT_PATH = os.path.expanduser(os.path.join('~', 'sandbox', 'surat'))
+    ROOT_PATH = os.path.dirname(__file__)
 DEVICE = torch.device('cuda')
 OUTPUT_COUNT = 8320 * 3  # 8320 vertex positions in 3 dimentions
 INPUT_VALUES_PRECALC_PATH = os.path.join(ROOT_PATH, 'inputValues.precalc')
