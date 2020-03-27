@@ -90,14 +90,14 @@ class Data(Dataset):
         if i < 0:  # for negative indexing
             i = self.count + i
 
+        inputValue = self.inputValues[i]
+
         if self.preview:
             return (
                 torch.Tensor([i]).long(),
-                inputValue[0],
+                inputValue,
                 torch.zeros((1, OUTPUT_COUNT))
             )
-
-        inputValue = self.inputValues[i]
 
         targetValue = torch.from_numpy(np.append(
             np.load(
