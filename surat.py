@@ -268,10 +268,10 @@ def train():
             modelResult = model(inputData, None, i)
             modelResultPairView = modelResult.view(-1, 2, OUTPUT_COUNT)
 
-            shapeLoss = criterion(
-                modelResultPairView,
-                targetPairView
-            )
+            shapeLoss = torch.mean(torch.sum(MSENoReductionCriterion(
+                    modelResultPairView[:, 0, :],
+                    targetPairView[:, 0, :]
+            ), dim=-1))
 
             motionLoss = torch.mean(torch.sum(MSENoReductionCriterion(
                 10 * modelResultPairView[:, 1, :] - 10 * modelResultPairView[:, 0, :],
