@@ -95,7 +95,7 @@ class Data(Dataset):
         if self.preview:
             return (
                 torch.Tensor([i]).long(),
-                inputValue,
+                inputValue[0],
                 torch.zeros((1, OUTPUT_COUNT))
             )
 
