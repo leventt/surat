@@ -237,10 +237,10 @@ def train():
         num_workers=8
     )
 
-    model = Model(dataSet.count, filterMood=True).to(DEVICE)
+    model = Model(dataSet.count, filterMood=False).to(DEVICE)
     modelOptimizer = torch.optim.Adam(
         model.parameters(),
-        lr=1e-3
+        lr=1e-2
     )
 
     epochCount = 50000
@@ -273,8 +273,8 @@ def train():
             )
 
             motionLoss = criterion(
-                10 * modelResultPairView[:, 1, :] - 10 * modelResultPairView[:, 0, :],
-                10 * targetPairView[:, 1, :] - 10 * targetPairView[:, 0, :],
+                100 * modelResultPairView[:, 1, :] - 100 * modelResultPairView[:, 0, :],
+                100 * targetPairView[:, 1, :] - 100 * targetPairView[:, 0, :],
             )
 
             emotionLoss = criterion(
