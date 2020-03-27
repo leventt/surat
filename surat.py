@@ -228,7 +228,7 @@ class Model(nn.Module):
 
 
 def train():
-    batchSize = 1024
+    batchSize = 1500
     dataSet = Data()
     dataLoader = DataLoader(
         dataset=dataSet,
@@ -240,7 +240,7 @@ def train():
     model = Model(dataSet.count, filterMood=True).to(DEVICE)
     modelOptimizer = torch.optim.Adam(
         model.parameters(),
-        lr=1e-4
+        lr=1e-3
     )
 
     epochCount = 50000
