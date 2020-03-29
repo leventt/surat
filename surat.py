@@ -253,7 +253,6 @@ def train():
         os.makedirs(modelDir)
 
     criterion = torch.nn.MSELoss().to(DEVICE)
-    MSENoReductionCriterion = torch.nn.MSELoss(reduction='none').to(DEVICE)
     for epochIdx in range(epochCount):
         for i, inputData, target in dataLoader:
             i = i.to(DEVICE)
@@ -268,15 +267,15 @@ def train():
             modelResult = model(inputData, None, i)
             modelResultPairView = modelResult.view(-1, 2, OUTPUT_COUNT)
 
-            shapeLoss = torch.mean(torch.sum(MSENoReductionCriterion(
-                    modelResultPairView[:, 0, :],
-                    targetPairView[:, 0, :]
-            ), dim=-1))
+            shapeLoss = criterion(
+                modelResultPairView,
+                targetPairView
+            )
 
-            motionLoss = torch.mean(torch.sum(MSENoReductionCriterion(
-                10 * modelResultPairView[:, 1, :] - 10 * modelResultPairView[:, 0, :],
-                10 * targetPairView[:, 1, :] - 10 * targetPairView[:, 0, :],
-            ), dim=-1))
+            motionLoss = criterion(
+                modelResultPairView[:, 1, :] - modelResultPairView[:, 0, :],
+                targetPairView[:, 1, :] - targetPairView[:, 0, :],
+            )
 
             emotionLoss = criterion(
                 model.mood[i],
