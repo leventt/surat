@@ -240,10 +240,10 @@ def train():
     model = Model(dataSet.count, filterMood=False).to(DEVICE)
     modelOptimizer = torch.optim.Adam(
         model.parameters(),
-        lr=1e-3
+        lr=1e-6
     )
 
-    epochCount = 50000
+    epochCount = 200000
 
     runStr = datetime.now().strftime('%y_%m_%d_%H_%M_%S')
     logWriter = SummaryWriter(os.path.join(ROOT_PATH, 'logs', runStr))
