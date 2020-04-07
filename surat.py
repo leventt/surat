@@ -225,7 +225,7 @@ def train():
     model = Model(dataSet.count, filterMood=False).to(DEVICE)
     modelOptimizer = torch.optim.Adam(
         model.parameters(),
-        lr=1e-2
+        lr=1e-5
     )
 
     epochCount = 200000
