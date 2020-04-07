@@ -134,19 +134,14 @@ class Model(nn.Module):
 
         self.formantAnalysis = nn.Sequential(
             nn.Conv2d(1, 72, (1, 3), (1, 2), (0, 1), 1),
-            nn.BatchNorm2d(72),
             nn.LeakyReLU(),
             nn.Conv2d(72, 108, (1, 3), (1, 2), (0, 1), 1),
-            nn.BatchNorm2d(108),
             nn.LeakyReLU(),
             nn.Conv2d(108, 162, (1, 3), (1, 2), (0, 1), 1),
-            nn.BatchNorm2d(162),
             nn.LeakyReLU(),
             nn.Conv2d(162, 243, (1, 3), (1, 2), (0, 1), 1),
-            nn.BatchNorm2d(243),
             nn.LeakyReLU(),
             nn.Conv2d(243, 256, (1, 2), (1, 2)),
-            nn.BatchNorm2d(256),
             nn.LeakyReLU(),
         )
 
@@ -163,33 +158,23 @@ class Model(nn.Module):
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (3, 1), (2, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
             nn.Conv2d(
                 256 + self.moodLen, 256 + self.moodLen, (4, 1), (4, 1), (1, 0), 1
             ),
-            nn.BatchNorm2d(256 + self.moodLen),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.2),
         )
         self.output = nn.Sequential(
             nn.Linear(256 + self.moodLen, 150),
@@ -228,7 +213,7 @@ class Model(nn.Module):
 
 
 def train():
-    batchSize = 16
+    batchSize = 1024
     dataSet = Data()
     dataLoader = DataLoader(
         dataset=dataSet,
@@ -240,7 +225,7 @@ def train():
     model = Model(dataSet.count, filterMood=False).to(DEVICE)
     modelOptimizer = torch.optim.Adam(
         model.parameters(),
-        lr=1e-6
+        lr=1e-2
     )
 
     epochCount = 200000
@@ -273,8 +258,8 @@ def train():
             )
 
             motionLoss = criterion(
-                modelResultPairView[:, 1, :] - modelResultPairView[:, 0, :],
-                targetPairView[:, 1, :] - targetPairView[:, 0, :],
+                100 * (modelResultPairView[:, 1, :] - modelResultPairView[:, 0, :]),
+                100 * (targetPairView[:, 1, :] - targetPairView[:, 0, :]),
             )
 
             emotionLoss = criterion(
